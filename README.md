@@ -1,5 +1,3 @@
-ciao!!
-
 B-modes pipeline constructor
 ----------------------------
 A framework for creating B-mode pipelines for the Simons Observatory. Documentation is still under development, but details about how to use this package to create new pipelines can be found below and in [CONTRIBUTING.md](CONTRIBUTING.md).
