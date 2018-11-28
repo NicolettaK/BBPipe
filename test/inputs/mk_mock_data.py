@@ -16,7 +16,7 @@ def read_cl_teb(fname,lmax=3000) :
     clteb[2:,1]=data[2]*2*np.pi/(larr*(larr+1))
     clteb[2:,2]=data[3]*2*np.pi/(larr*(larr+1))
     clteb[2:,3]=data[4]*2*np.pi/(larr*(larr+1))
-    
+
     return np.arange(lmax),np.transpose(clteb[:lmax])
 
 def get_sky_sim_gaus(nside,
@@ -26,33 +26,33 @@ def get_sky_sim_gaus(nside,
                      ABB_dust=3.8,AEE_dust=3.8,alpha_dust=-0.42,
                      beta_dust=1.59,temp_dust=20.,nu0_dust=353.,
                      freqs=[0.],seed_cmb=None,seed_fg=None,need_fg=True) :
-"""
-Generates a Gaussian sky simulation containing CMB and foregrounds.
-nside : resolution parameter
-r_cmb : tensor-to-scalar ratio
-ABB_sync : amplitude of the synchrotron BB power spectrum at the reference frequency and ell=80. The model is:
-                     l*(l+1)*C_l(nu1,nu2) = A_BB * (l/80.)^alpha_sync * 
-                            S_sync(nu1,beta_sync,curv_sync) * S_sync(nu1,beta_sync,curv_sync)/S_sync(nu_ref,beta_sync,curv_sync)^2
-           where S_sync is the synchrotron SED (a curved power law).
-AEE_sync : same as ABB_sync for EE.
-alpha_sync : spectral tilt of the synchrotron power spectrum.
-beta_sync : synchrotron spectral index.
-curv_sync : synchrotron curvature index.
-nu0_sync : synchrotron reference frequency.
-ABB_dust : same as ABB_sync for dust.
-AEE_dust : same as AEE_sync for dust.
-alpha_dust : same as alpha_sync for dust.
-beta_dust : dust spectral index.
-temp_dust : dust temperature.
-nu0_dust : dust reference frequency.
-freqs : list of frequencies at which to output maps
-seed_cmb : seed for the CMB simulation
-seed_fg : seed for the foreground simulation
-need_fg : set to False if you only want CMB maps
-"""
+    """
+    Generates a Gaussian sky simulation containing CMB and foregrounds.
+    nside : resolution parameter
+    r_cmb : tensor-to-scalar ratio
+    ABB_sync : amplitude of the synchrotron BB power spectrum at the reference frequency and ell=80. The model is:
+                         l*(l+1)*C_l(nu1,nu2) = A_BB * (l/80.)^alpha_sync *
+                                S_sync(nu1,beta_sync,curv_sync) * S_sync(nu1,beta_sync,curv_sync)/S_sync(nu_ref,beta_sync,curv_sync)^2
+               where S_sync is the synchrotron SED (a curved power law).
+    AEE_sync : same as ABB_sync for EE.
+    alpha_sync : spectral tilt of the synchrotron power spectrum.
+    beta_sync : synchrotron spectral index.
+    curv_sync : synchrotron curvature index.
+    nu0_sync : synchrotron reference frequency.
+    ABB_dust : same as ABB_sync for dust.
+    AEE_dust : same as AEE_sync for dust.
+    alpha_dust : same as alpha_sync for dust.
+    beta_dust : dust spectral index.
+    temp_dust : dust temperature.
+    nu0_dust : dust reference frequency.
+    freqs : list of frequencies at which to output maps
+    seed_cmb : seed for the CMB simulation
+    seed_fg : seed for the foreground simulation
+    need_fg : set to False if you only want CMB maps
+    """
     if seed_cmb is not None :
         np.random.seed(seed_cmb)
-        
+
     #Set CMB power spectra
     nell=3*nside
     nnu=len(freqs)
@@ -62,6 +62,7 @@ need_fg : set to False if you only want CMB maps
     clEE_cmb=(r_cmb*cteb_prim+          cteb_lens)[1,:nell]
     clBB_cmb=(r_cmb*cteb_prim+alens_cmb*cteb_lens)[2,:nell]
     clTE_cmb=(r_cmb*cteb_prim+          cteb_lens)[3,:nell]
+    freqs=np.array(freqs)
     spec_cmb=spc.cmb(freqs)
     clt_cmb=np.zeros([3,nnu,nnu,nell])
     clt_cmb[0]=clTT_cmb[None,None,:]*spec_cmb[:,None,None]*spec_cmb[None,:,None]
@@ -73,7 +74,7 @@ need_fg : set to False if you only want CMB maps
     if need_fg :
         if seed_fg is not None :
             np.random.seed(seed_fg)
-        
+
         #Set foreground power spectra
         ell=np.arange(nell)
         dl_prefac=2*np.pi/((ell+0.01)*(ell+1))
@@ -101,7 +102,7 @@ need_fg : set to False if you only want CMB maps
         clt_dust[2]=clBB_dust[None,None,:]*spec_dust[:,None,None]*spec_dust[None,:,None]
         input_dust={'spec':spec_dust,'ctt':clTT_dust,'cte':clTE_dust,'cee':clEE_dust,'cbb':clBB_dust,
                     'ctot':clt_dust}
-        
+
         #Generate foreground maps
         amp_sync=np.array(hp.synfast([clTT_sync,clEE_sync,clBB_sync,clTE_sync,clZERO,clZERO],
                                      nside,pol=True,new=True,verbose=False))
@@ -160,7 +161,7 @@ def get_noise_sim(nside,sensitivity=2,knee=1,ny_lf=1.,seed=None) :
         cl_th[0,i_n,i_n,:]=nl/2.*units[i_n]**2
         cl_th[1,i_n,i_n,:]=nl*units[i_n]**2
         cl_th[2,i_n,i_n,:]=nl*units[i_n]**2
-    
+
     id_cut=np.where(nh<ZER0)[0]
     nh[id_cut]=np.amax(nh)
     mps_no=[];
@@ -175,7 +176,7 @@ def get_noise_sim(nside,sensitivity=2,knee=1,ny_lf=1.,seed=None) :
     mps_no=np.array(mps_no)
 
     input_noi={'ctot':cl_th}
-        
+
     return mps_no,msk
 
 #Number of splits to generate

@@ -7,3 +7,4 @@ test/outputs
 test/logs
 log.txt
 runinfo
+.DS_Store
