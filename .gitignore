@@ -8,4 +8,4 @@ test/logs
 log.txt
 runinfo
 .DS_Store
-.ipynb_checkpoints
+*/.ipynb_checkpoints
