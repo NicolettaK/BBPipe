@@ -20,35 +20,58 @@ def read_cl_teb(fname,lmax=3000) :
     return np.arange(lmax),np.transpose(clteb[:lmax])
 
 def get_sky_sim_gaus(nside,
-                     r_cmb,alens_cmb,
-                     ABB_sync=3.8,AEE_sync=3.8,alpha_sync=-0.60,
-                     beta_sync=-3.0,curv_sync= 0.,nu0_sync= 23.,
-                     ABB_dust=3.8,AEE_dust=3.8,alpha_dust=-0.42,
-                     beta_dust=1.59,temp_dust=20.,nu0_dust=353.,
-                     freqs=[0.],seed_cmb=None,seed_fg=None,need_fg=True) :
+                     r_cmb, alens_cmb,
+                     AEE_sync=4.3, EtoB_sync=0.5, alpha_sync=-1.0,
+                     beta_sync=-3.1,curv_sync= 0.,nu0_sync= 23.,
+                     AEE_dust=100., EtoB_dust=0.5, alpha_dust=-0.42,
+                     beta_dust=1.53, temp_dust=19.6, nu0_dust=353.,
+                     freqs=[100.], thermo_units=False,
+                     seed_cmb=None, seed_fg=None, need_fg=True) :
     """
     Generates a Gaussian sky simulation containing CMB and foregrounds.
+
+    Parameters
+    ---------------
     nside : resolution parameter
     r_cmb : tensor-to-scalar ratio
-    ABB_sync : amplitude of the synchrotron BB power spectrum at the reference frequency and ell=80. The model is:
-                         l*(l+1)*C_l(nu1,nu2) = A_BB * (l/80.)^alpha_sync *
-                                S_sync(nu1,beta_sync,curv_sync) * S_sync(nu1,beta_sync,curv_sync)/S_sync(nu_ref,beta_sync,curv_sync)^2
-               where S_sync is the synchrotron SED (a curved power law).
-    AEE_sync : same as ABB_sync for EE.
-    alpha_sync : spectral tilt of the synchrotron power spectrum.
+    AEE_sync : amplitude of the synchrotron BB power spectrum (D_ell) at the reference
+        frequency and ell=80, in muK^2 and thermodinamic units.
+        Default: 4.3 from the amplitude of S-PASS E-modes power spectrum at 2.3GHz
+        in the region covered by SO-SAT, rescaled at 23GHz with a powerlaw with
+        beta_s = -3.1
+    EtoB_sync : ration between E and B-mode amplitude for synchrotron.
+        Default: 0.5 from Krachmalnicoff et al. 2018
+    alpha_sync : spectral tilt of the synchrotron power spectrum (D_ell).
+        Default: -1.0 from Krachmalnicoff et al. 2018
     beta_sync : synchrotron spectral index.
+        Default: -3.1 from Planck 2018 IX
     curv_sync : synchrotron curvature index.
-    nu0_sync : synchrotron reference frequency.
-    ABB_dust : same as ABB_sync for dust.
+        Default: 0.
+    nu0_sync : synchrotron reference frequency in GHz.
+        Default: 23
     AEE_dust : same as AEE_sync for dust.
+        Default: 100. from the amplitude of HFI-353 E-modes spectrum in the
+        region covered by SO-SAT
+    EtoB_sync : ration between E and B-mode amplitude for dust.
+        Default: 0.5 from Planck 2018 IX
     alpha_dust : same as alpha_sync for dust.
+        Default: -0.42 from Planck 2018 IX
     beta_dust : dust spectral index.
+        Default: 1.53 from Planck 2018 IX
     temp_dust : dust temperature.
-    nu0_dust : dust reference frequency.
-    freqs : list of frequencies at which to output maps
+        Default: 19.6 from Planck 2018 IX
+    nu0_dust : dust reference frequency in GHz.
+        Default: 353.
+    freqs : list of frequencies at which to output maps in GHz
+        Default: 100.
+    thermo_units : Whether the output maps will be in thermodinamic or RJ units
+        Default: False ---> output in RJ units
     seed_cmb : seed for the CMB simulation
+        Default: None
     seed_fg : seed for the foreground simulation
+        Default: None
     need_fg : set to False if you only want CMB maps
+        Default: True
     """
     if seed_cmb is not None :
         np.random.seed(seed_cmb)
@@ -81,8 +104,9 @@ def get_sky_sim_gaus(nside,
         clZERO=np.zeros_like(ell)
         clTT_sync=clZERO
         clTE_sync=clZERO
-        clBB_sync=dl_prefac*ABB_sync*((ell+0.1)/80.)**alpha_sync*spc.cmb(nu0_sync)**2
         clEE_sync=dl_prefac*AEE_sync*((ell+0.1)/80.)**alpha_sync*spc.cmb(nu0_sync)**2
+        ABB_sync = AEE_sync*EtoB_sync
+        clBB_sync=dl_prefac*ABB_sync*((ell+0.1)/80.)**alpha_sync*spc.cmb(nu0_sync)**2
         spec_sync=spc.sync_curvedpl(freqs,nu0_sync,beta_sync,curv_sync)
         clt_sync=np.zeros([3,nnu,nnu,nell])
         clt_sync[0]=clTT_sync[None,None,:]*spec_sync[:,None,None]*spec_sync[None,:,None]
@@ -93,8 +117,9 @@ def get_sky_sim_gaus(nside,
 
         clTT_dust=clZERO
         clTE_dust=clZERO
-        clBB_dust=dl_prefac*ABB_dust*((ell+0.1)/80.)**alpha_dust*spc.cmb(nu0_dust)**2
         clEE_dust=dl_prefac*AEE_dust*((ell+0.1)/80.)**alpha_dust*spc.cmb(nu0_dust)**2
+        ABB_dust = AEE_dust*EtoB_dust
+        clBB_dust=dl_prefac*ABB_dust*((ell+0.1)/80.)**alpha_dust*spc.cmb(nu0_dust)**2
         spec_dust=spc.dustmbb(freqs,nu0_dust,beta_dust,temp_dust)
         clt_dust=np.zeros([3,nnu,nnu,nell])
         clt_dust[0]=clTT_dust[None,None,:]*spec_dust[:,None,None]*spec_dust[None,:,None]
@@ -117,8 +142,13 @@ def get_sky_sim_gaus(nside,
                                 nside,pol=True,new=True,verbose=False))
     mp_cmb=amp_cmb[None,:,:]*spec_cmb[:,None,None]
 
-    #Return CMB and foregrounds separately.
-    return mp_cmb,mp_dust+mp_sync
+    if thermo_units:
+        mp_cmb=mp_cmb/spec_cmb[:,None,None]
+        mp_dust=mp_dust/spec_cmb[:,None,None]
+        mp_sync=mp_sync/spec_cmb[:,None,None]
+
+    #Return CMB dust and sync separately.
+    return mp_cmb, mp_dust, mp_sync
 
 def get_nhits() :
     #Read nhits map
@@ -184,7 +214,8 @@ nsplits=2
 nside=64
 nus=v3.so_V3_SA_bands()
 #Generate foreground and CMB maps
-mp_cmb,mp_fgs=get_sky_sim_gaus(nside,0,0.5,freqs=nus)
+mp_cmb,mp_dust,mp_sync=get_sky_sim_gaus(nside,0,0.5,freqs=nus)
+mp_fgs=mp_dust+mp_sync
 
 #Write maps
 for isplit in range(nsplits) :
